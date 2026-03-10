@@ -98,6 +98,25 @@ backend-daily-labs/
 
 ---
 
+## 🚀 Production Readiness & Edge Cases
+
+While the current `ConcurrentHashMap` implementation is a mathematically sound **Fixed Window Counter** for a single-server instance, deploying this to a massive production environment exposes a few architectural edge cases.
+
+Here is how this system would be upgraded for enterprise scalability:
+
+### 1. The Distributed Memory Problem (Multi-Server)
+* **The Edge Case:** In production, APIs sit behind a Load Balancer that routes traffic to multiple server instances (e.g., Server A and Server B). Since our `ConcurrentHashMap` lives inside the local memory of a single Java JVM, Server B has no idea how many requests Server A just processed for a user.
+* **The Solution:** Move the state out of the application. Replace the local `ConcurrentHashMap` with **Redis**. Redis acts as a centralized, ultra-fast, in-memory database that all server instances read from and write to simultaneously.
+
+
+### 2. The Memory Leak Risk (OOM)
+* **The Edge Case:** Currently, every new IP address is permanently added to the map. If a million unique users hit the API over a month, the map grows infinitely until the Java application throws an `OutOfMemoryError` and crashes.
+* **The Solution:** Implement a **Time-To-Live (TTL)**. If using Redis, you configure the key to automatically delete itself after 10 seconds. If staying purely in Java, a scheduled background thread (e.g., using Spring's `@Scheduled`) must be written to sweep the map and clean up expired `RequestInfo` objects every few minutes.
+
+### 3. The Proxy Trick (IP Spoofing)
+* **The Edge Case:** Malicious users or bots can easily bypass an IP-based rate limiter by rapidly rotating their IP addresses using VPNs or proxy pools.
+* **The Solution:** Instead of tracking `request.getRemoteAddr()`, secure production endpoints apply rate limits based on authenticated identities. This means extracting a logged-in `user_id` from a JWT token, or requiring an `x-api-key` in the request headers and tracking that specific key's usage.
+
 ## 📚 official resources used
 
 since this was built completely from scratch without ai writing the code, i used these official docs to figure out the logic:
