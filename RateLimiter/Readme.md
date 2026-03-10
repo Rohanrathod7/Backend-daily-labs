@@ -9,53 +9,98 @@
 
 ---
 
-## ⏱️ Execution Timeline (3 Hours)
+# 🛡️ Day 1: The Gatekeeper (API Rate Limiter)
 
-This day was structured into four strict time blocks to simulate a fast-paced development sprint:
-
-| Phase | Timeblock | Focus Area | Core Technologies |
-| :--- | :--- | :--- | :--- |
-| **Phase 1** | 0 - 45 mins | The Bare Server | Spring Initializr, `@RestController`, `@GetMapping` |
-| **Phase 2** | 45 - 105 mins | The Middleman (Bouncer) | `OncePerRequestFilter`, `FilterChain`, `@Component` |
-| **Phase 3** | 105 - 150 mins | Thread-Safe Memory | `ConcurrentHashMap`, `System.currentTimeMillis()` |
-| **Phase 4** | 150 - 180 mins | API Testing & Version Control | Postman HTTP Client, Git/GitHub |
+> **Core Concept:** Protecting API endpoints from abuse and spam using a custom-built Fixed Window Counter algorithm.
+> **Constraint:** Strict "No-AI" coding policy. Built entirely from scratch using raw Java and Spring Boot documentation.
 
 ---
 
-## 🛠️ Step-by-Step Implementation
+## ❓ The What and The Why
 
-### 1. The Bare Server
-* Bootstrapped the project using **Spring Initializr** (Maven, Java, Spring Web dependency).
-* Created a basic API endpoint using `@RestController`.
-* Mapped the endpoint `http://localhost:8080/api/test` to return a successful `200 OK` text response.
-
-### 2. The Middleman (Request Interception)
-* Implemented a custom filter extending `OncePerRequestFilter` to intercept raw HTTP requests before they reach the controller.
-* Registered the filter in the Spring application context using `@Component`.
-* Successfully intercepted incoming requests, logged them to the terminal, and passed them down the `FilterChain`.
-
-### 3. Thread-Safe Memory Simulation
-* Created a standalone Java class (`TimeTest.java`) independent of the Spring context to test concurrency logic.
-* Utilized `ConcurrentHashMap` to ensure thread safety (crucial for handling simultaneous API requests in Spring's multi-threaded environment).
-* Implemented timestamp mathematics using `System.currentTimeMillis()` and `Thread.sleep()` to simulate tracking and expiring time windows.
-
-### 4. The Testing Hammer
-* Configured **Postman** to execute raw `GET` requests against the local development server.
-* Verified that the server returns a `200 OK` status and the custom filter logs execute in the correct order.
-* Initialized a local Git repository and pushed the foundational code to GitHub.
+* **What is it?** A security layer (filter) that sits in front of a web server. It limits how many times a single user can hit the API within a specific timeframe (5 requests per 10 seconds).
+* **Why build it?** To prevent server crashes from DDoS attacks, stop users from spamming endpoints, and deeply understand how HTTP requests flow through a backend system.
+* **Why not use a library?** Building it from scratch forces a deep understanding of thread-safe memory handling (`ConcurrentHashMap`), custom HTTP responses, and filter chains.
 
 ---
 
-## 📚 Official Resources & Documentation Used
+## 🧠 Data Flow & Architecture
 
-To adhere to the "No-AI" constraint, the following documentation was utilized:
-* [Spring Web MVC Documentation](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
-* [Baeldung: OncePerRequestFilter Example](https://www.baeldung.com/spring-onceperrequestfilter)
-* [Java 17 ConcurrentHashMap Docs](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html)
+Below is the logical flow of how the custom rate limiter processes every incoming request.
+
+```mermaid
+graph TD
+    A[Incoming HTTP Request] --> B[RateLimitFilter Intercepts]
+    B --> C{Extract Client IP}
+    C --> D{Is IP in Memory?}
+    
+    D -- No (First Visit) --> E[Create RequestInfo: Count=1, Time=Now]
+    E --> F[Save to ConcurrentHashMap]
+    F --> G[Pass to Controller: 200 OK]
+    
+    D -- Yes (Returning IP) --> H{Is Time Diff > 10 Seconds?}
+    
+    H -- Yes (Window Expired) --> I[Reset Count=1, Update Time=Now]
+    I --> J[Save to Map & Pass to Controller: 200 OK]
+    
+    H -- No (Still in Window) --> K{Is Count < 5?}
+    
+    K -- Yes --> L[Increment Count +1]
+    L --> M[Save to Map & Pass to Controller: 200 OK]
+    
+    K -- No (Spam Detected) --> N[Halt Filter Chain]
+    N --> O[Return Custom Response: 429 Too Many Requests]
+
+```
+## 🛠️ how it was built (step-by-step)
+
+### 1. the bouncer (`RateLimitFilter.java`)
+i made a class that extends `OncePerRequestFilter`. this acts like a guard that catches every single http request before it even reaches the main controller.
+
+### 2. the custom memory object (`RequestInfo.java`)
+a normal map can only hold one value. but i needed to track two things:
+* `requestCount`: how many times the user clicked.
+* `windowStartTime`: the exact time they made their first click.
+  so, i built a custom object just to hold these two variables together safely.
+
+### 3. the thread-safe vault (`ConcurrentHashMap`)
+spring boot handles many users at the same time using different threads. if i used a normal `HashMap`, the app would crash if two people clicked at the same millisecond. so i used `ConcurrentHashMap` to safely link a user's ip address to their `RequestInfo` data.
+
+### 4. the math and the block
+i used `System.currentTimeMillis()` to check the time difference. if a user makes more than 5 requests inside a 10-second window, the filter completely stops the process. it then manually writes a `429 too many requests` error directly back to the user using the `HttpServletResponse`.
 
 ---
 
-## ⏭️ Next Steps for Day 1
-Transform this foundation into a functional **Fixed Window Rate Limiter**.
-* **Target Logic:** Restrict incoming requests to **5 requests per 10-second window** per IP address.
-* **Failure State:** Return HTTP Status `429 Too Many Requests`.
+## 📂 project structure
+
+```text
+backend-daily-labs/
+├── README.md (master 7-day tracker)
+└── day-01-rate-limiter/
+    ├── pom.xml
+    ├── README.md (this specific file)
+    └── src/main/java/com/Rohan/RateLimiter/
+        ├── RatelimiterApplication.java
+        ├── TestController.java
+        ├── RateLimitFilter.java
+        └── RequestInfo.java
+
+```
+## 🧪 how to test
+
+1. open the project in your ide and run the `RatelimiterApplication.java` file.
+2. open **postman**.
+3. make a `GET` request to `http://localhost:8080/api/test`.
+4. it will show `200 ok` and your success message.
+5. click the "send" button 6 times really fast.
+6. on the 6th click, it will block you and show a red `429 too many requests` status code.
+7. wait 10 seconds, click send again, and you will get `200 ok` again.
+
+---
+
+## 📚 official resources used
+
+since this was built completely from scratch without ai writing the code, i used these official docs to figure out the logic:
+* [spring boot filter docs](https://docs.spring.io/spring-framework/reference/web/webmvc-filters.html)
+* [java 17 ConcurrentHashMap docs](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html)
+* [mdn web docs for 429 status](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429)
