@@ -124,39 +124,3 @@ since this was built completely from scratch without ai writing the code, i used
 * [java 17 ConcurrentHashMap docs](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ConcurrentHashMap.html)
 * [mdn web docs for 429 status](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429)
 
-## 🧪 How to Test Locally
-
-1. Start the Spring Boot application (`TaskQueueApplication.java`).
-2. Open **Postman** and create a new `POST` request to `http://localhost:8080/api/reports`.
-3. **The Single Test:** Click **Send** once.
-  * *Postman:* Instantly returns `202 Accepted` and a success message.
-  * *Terminal:* Prints `Processing: Report_Task_...`, pauses for 5 seconds, then prints `Finished: Report_Task_...`.
-4. **The Stress Test:** Click **Send** 5 times as fast as possible.
-  * *Postman:* Instantly returns 5 consecutive `202 Accepted` responses with zero lag.
-  * *Terminal:* The background worker processes them sequentially, taking 25 seconds total, proving the main web thread was completely unblocked.
-
----
-
-## 🚀 Edge Cases & Production Improvements
-
-While `LinkedBlockingQueue` is perfectly thread-safe for a single instance, relying on in-memory queues introduces risks in an enterprise environment. Here is how to make this architecture production-ready:
-
-### 1. The Volatile Memory Problem (Data Loss)
-* **The Edge Case:** If the server suddenly crashes, restarts, or is scaled down by a load balancer, every single task currently sitting in the `LinkedBlockingQueue` is permanently deleted from RAM.
-* **The Solution:** Swap the in-memory queue for a persistent **Message Broker** like **RabbitMQ**, **Apache Kafka**, or **AWS SQS**. These tools save messages to a hard drive so tasks survive server crashes.
-
-### 2. The Bottleneck (Single Consumer)
-* **The Edge Case:** Right now, there is only one worker thread. If 1,000 users request a report that takes 5 seconds to build, the 1,000th user will wait almost an hour and a half for their report to process.
-* **The Solution:** Implement a **Thread Pool** (e.g., Java's `ExecutorService`) to spin up 10 or 20 concurrent worker threads. In a distributed system, you would spin up entirely separate "Consumer" microservices that pull from the same Kafka topic.
-
-### 3. The Silent Failure (Dropped Tasks)
-* **The Edge Case:** If the worker encounters an error while processing a task (e.g., a database timeout or null pointer), the task crashes and is lost forever. The user never gets their report.
-* **The Solution:** Implement a **Dead Letter Queue (DLQ)**. If a task fails 3 times, it is moved to a separate "failure queue" where developers can inspect it, and the worker moves on to the next task.
-
----
-
-## 🔮 Future Enhancements
-
-If I were to expand this project, I would add:
-1. **Database Integration:** Save the task ID to a PostgreSQL database with a status of `PENDING`, `PROCESSING`, or `COMPLETED`.
-2. **Status Endpoint:** Create a `GET /api/reports/{id}` endpoint so the frontend client can check if their specific background task is finished yet.
