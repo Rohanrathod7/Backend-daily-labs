@@ -8,12 +8,14 @@
         <outputRelativeToContentRoot value="true" />
         <module name="task-queue" />
         <module name="RateLimiter" />
+        <module name="mini-redis" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="RateLimiter" options="-parameters" />
+      <module name="mini-redis" options="-parameters" />
       <module name="task-queue" options="-parameters" />
     </option>
   </component>
