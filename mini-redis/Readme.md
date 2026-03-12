@@ -261,13 +261,14 @@ graph TD
 ```
 ---
 
-![terminal](media/img.png)
+![img.png](../media/img.png)
 
 ---
 
 ## 🧪 How to Test Locally
 
-![PostMan](media/img_1.png)
+![img_1.png](../media/img_1.png)
+
 
 To prove that both the memory vault and the background eviction engine are working, we will perform the "Ghost Test."
 
