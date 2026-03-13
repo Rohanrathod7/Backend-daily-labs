@@ -193,41 +193,35 @@ Generate a string using `java.security.SecureRandom` (never `Math.random()`, as 
 
 ## 🧠 System Architecture & Data Flow
 
-This diagram illustrates the two distinct data flows handled by the URL Shortener: the internal creation and mapping of the short code, and the external interception and redirection of web traffic.
+This diagram illustrates the timeline of the two distinct data flows: the internal creation of the short code, and the external HTTP 302 redirect.
 
 ```mermaid
-graph TD
-    %% Define external actors
-    Client[API Client / Postman]
-    Browser[User Web Browser]
-    Target[External Destination <br> e.g., YouTube]
+sequenceDiagram
+    autonumber
+    
+    %% Define the actors
+    participant Client as Postman Client
+    participant API as UrlController
+    participant Math as UrlEncoderService
+    participant DB as UrlStorageService
+    participant Browser as Web Browser
+    participant Target as Target URL (YouTube)
 
-    %% Define internal system components
-    subgraph Spring Boot Application
-        API[UrlController <br> REST API]
-        Math[UrlEncoderService <br> Base62 Generator]
-        DB[(UrlStorageService <br> ConcurrentHashMap)]
-    end
+    %% Flow 1: Shortening
+    Note over Client, DB: 1. The Write Flow (POST: Create Short Link)
+    Client->>API: POST /api/url/shorten?longUrl=...
+    API->>Math: Request 6-character code
+    Math-->>API: Returns "aB3x9Q"
+    API->>DB: saveUrl("aB3x9Q", longUrl)
+    API-->>Client: Returns http://localhost:8080/aB3x9Q
 
-    %% 1. The Write Flow (Creating the Short Link)
-    Client -->|"1. POST /api/url/shorten?longUrl=..."| API
-    API -->|"2. Request 6-character code"| Math
-    Math -.->|"3. Return generated aB3x9Q"| API
-    API -->|"4. saveUrl(aB3x9Q, longUrl)"| DB
-    API -.->|"5. Return http://localhost:8080/aB3x9Q"| Client
-
-    %% 2. The Read Flow (The HTTP 302 Redirect)
-    Browser -->|"A. GET /aB3x9Q"| API
-    API -->|"B. getLongUrl(aB3x9Q)"| DB
-    DB -.->|"C. Return Original URL"| API
-    API -.->|"D. HTTP 302 Found (Location: Original URL)"| Browser
-    Browser -->|"E. Browser Automatically Redirects"| Target
-
-    %% Styling for visual clarity
-    classDef storage fill:#ff9,stroke:#333,stroke-width:2px;
-    classDef compute fill:#bbf,stroke:#333,stroke-width:2px;
-    class DB storage;
-    class Math compute;
+    %% Flow 2: Redirecting
+    Note over Browser, Target: 2. The Read Flow (GET: HTTP 302 Redirect)
+    Browser->>API: GET /aB3x9Q
+    API->>DB: getLongUrl("aB3x9Q")
+    DB-->>API: Returns Original URL
+    API-->>Browser: HTTP 302 Found (Location: Original URL)
+    Browser->>Target: Browser automatically redirects!
 ```
 ---
 
