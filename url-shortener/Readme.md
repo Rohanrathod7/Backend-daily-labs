@@ -188,13 +188,12 @@ Generate a string using `java.security.SecureRandom` (never `Math.random()`, as 
 #### The Production Solution for Randomization
 * **Database Indexing:** You must place a Unique Index on the `short_url` database column. This turns the collision check from a full-table scan (which takes seconds) into an instant `O(1)` or `O(log N)` lookup.
 * **Max Retry Limits:** Never write a `while(true)` loop. Always set a max retry limit (e.g., `int retries = 0; while(retries < 5)`). If it fails 5 times, throw an HTTP 500 exception rather than infinitely locking the server thread.
+
 ---
 
 ## 🧠 System Architecture & Data Flow
 
 This diagram illustrates the two distinct data flows handled by the URL Shortener: the internal creation and mapping of the short code, and the external interception and redirection of web traffic.
-
-
 
 ```mermaid
 graph TD
@@ -211,27 +210,25 @@ graph TD
     end
 
     %% 1. The Write Flow (Creating the Short Link)
-    Client -->|1. POST /api/url/shorten?longUrl=...| API
-    API -->|2. Request 6-character code| Math
-    Math -.->|3. Return generated 'aB3x9Q'| API
-    API -->|4. saveUrl('aB3x9Q', longUrl)| DB
-    API -.->|5. Return 'http://localhost:8080/aB3x9Q'| Client
+    Client -->|"1. POST /api/url/shorten?longUrl=..."| API
+    API -->|"2. Request 6-character code"| Math
+    Math -.->|"3. Return generated aB3x9Q"| API
+    API -->|"4. saveUrl(aB3x9Q, longUrl)"| DB
+    API -.->|"5. Return http://localhost:8080/aB3x9Q"| Client
 
     %% 2. The Read Flow (The HTTP 302 Redirect)
-    Browser -->|A. GET /aB3x9Q| API
-    API -->|B. getLongUrl('aB3x9Q')| DB
-    DB -.->|C. Return Original URL| API
-    API -.->|D. HTTP 302 Found <br> Location: Original URL| Browser
-    Browser -->|E. Browser Automatically Redirects| Target
+    Browser -->|"A. GET /aB3x9Q"| API
+    API -->|"B. getLongUrl(aB3x9Q)"| DB
+    DB -.->|"C. Return Original URL"| API
+    API -.->|"D. HTTP 302 Found (Location: Original URL)"| Browser
+    Browser -->|"E. Browser Automatically Redirects"| Target
 
     %% Styling for visual clarity
     classDef storage fill:#ff9,stroke:#333,stroke-width:2px;
     classDef compute fill:#bbf,stroke:#333,stroke-width:2px;
     class DB storage;
     class Math compute;
-    
- ```
-
+```
 ---
 
 ## 🏗️ Phase 1: The Base62 Encoder
