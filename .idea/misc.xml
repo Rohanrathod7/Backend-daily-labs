@@ -7,6 +7,7 @@
         <option value="$PROJECT_DIR$/RateLimiter/pom.xml" />
         <option value="$PROJECT_DIR$/task-queue/pom.xml" />
         <option value="$PROJECT_DIR$/mini-redis/pom.xml" />
+        <option value="$PROJECT_DIR$/url-shortener/pom.xml" />
       </list>
     </option>
   </component>

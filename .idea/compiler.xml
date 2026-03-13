@@ -7,8 +7,9 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="task-queue" />
-        <module name="RateLimiter" />
         <module name="mini-redis" />
+        <module name="url-shortener" />
+        <module name="RateLimiter" />
       </profile>
     </annotationProcessing>
   </component>
@@ -17,6 +18,7 @@
       <module name="RateLimiter" options="-parameters" />
       <module name="mini-redis" options="-parameters" />
       <module name="task-queue" options="-parameters" />
+      <module name="url-shortener" options="-parameters" />
     </option>
   </component>
 </project>
