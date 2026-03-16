@@ -5,5 +5,6 @@
     <file url="file://$PROJECT_DIR$/mini-redis/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/task-queue/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/url-shortener/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/websocket-chat/src/main/java" charset="UTF-8" />
   </component>
 </project>

@@ -387,3 +387,28 @@ If I were building this without a 3-hour time constraint, I would architect a gl
 
 4. **Rate Limiting & Abuse Prevention**
    I would integrate my Day 1 Rate Limiter at the API Gateway level to prevent malicious bots from spamming the `POST` endpoint and exhausting our Base62 namespace.
+
+## 🔮 Future Enhancements
+
+If I were to expand this specific 3-hour codebase, I would add:
+1. **Usernames & Authentication:** Modify the frontend to prompt for a username, and update the WebSocket payload to send a JSON object (e.g., `{"user": "Rohan", "text": "Hello!"}`) instead of a raw string.
+2. **Channels & Chat Rooms:** Instead of a single global broadcast list, update the `ChatWebSocketHandler` to map Session IDs to specific "Room IDs" using a `ConcurrentHashMap<String, CopyOnWriteArrayList<WebSocketSession>>`.
+3. **System Events:** Add logic to handle non-text events, allowing the frontend to display "Rohan is typing..." or "Rohan has joined the room" notifications.
+
+---
+
+## 🛑 The "No Time Constraint" Architecture (Enterprise Scale)
+
+If I were building a production-grade, globally scalable chat platform without a 3-hour constraint, I would architect a system capable of handling millions of concurrent TCP connections. Here is the real-world enterprise design:
+
+1. **The WebSocket Fleet & API Gateway**
+   I would separate standard HTTP traffic from WebSocket traffic. A standard API Gateway handles user login, channel creation, and fetching chat history. Once authenticated, the client is routed to a dedicated fleet of **WebSocket Servers** whose only job is keeping millions of TCP connections open efficiently.
+
+2. **Redis Pub/Sub (The Global Router)**
+   Because users in the same chat room might be connected to completely different physical servers, a local `ArrayList` will not work. I would implement a **Redis Pub/Sub** message broker. When a user sends a message, their specific server publishes it to a Redis channel. Every server subscribed to that channel instantly receives the message and pushes it down to their respective connected clients.
+
+3. **Apache Cassandra (Time-Series Persistence)**
+   Chat applications are incredibly write-heavy (Discord handles billions of messages a day). I would use **Cassandra**, a highly scalable NoSQL database optimized for rapid time-series data ingestion, to permanently store the chat history. When a user first loads the app, the frontend pulls the historical messages from Cassandra via HTTP before seamlessly upgrading to the live WebSocket stream.
+
+4. **Dedicated Presence Service (Online/Offline Tracking)**
+   To track who is currently online without constantly querying a slow database, I would build a dedicated microservice that uses **Redis Keyspaces with TTL (Time-to-Live)**. When a user connects, their status is saved in Redis. The client sends a heartbeat ping every 30 seconds. If a ping is missed, the TTL expires, and the system automatically broadcasts an "Offline" event to their friends.
