@@ -530,3 +530,4 @@ If I were building a production-grade, globally scalable chat platform without a
 
 4. **Dedicated Presence Service (Online/Offline Tracking)**
    To track who is currently online without constantly querying a slow database, I would build a dedicated microservice that uses **Redis Keyspaces with TTL (Time-to-Live)**. When a user connects, their status is saved in Redis. The client sends a heartbeat ping every 30 seconds. If a ping is missed, the TTL expires, and the system automatically broadcasts an "Offline" event to their friends.
+

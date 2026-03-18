@@ -9,6 +9,7 @@
         <option value="$PROJECT_DIR$/mini-redis/pom.xml" />
         <option value="$PROJECT_DIR$/url-shortener/pom.xml" />
         <option value="$PROJECT_DIR$/websocket-chat/pom.xml" />
+        <option value="$PROJECT_DIR$/jwt-auth/pom.xml" />
       </list>
     </option>
   </component>
